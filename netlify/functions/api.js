@@ -24,18 +24,14 @@ async function fetchDeepData(userId, headers) {
         emailStatus: 'Unknown', twoFactor: 'Unknown', ageVerified: false, birthdate: null 
     };
     
-    // 1. Avatar & Detail
     try { const r = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=false`, { headers }); const j = await r.json(); if (j.data?.length > 0) data.avatarUrl = j.data[0].imageUrl; } catch(e) {}
     try { const r = await fetch(`https://users.roblox.com/v1/users/${userId}`, { headers }); const j = await r.json(); data.ageDays = Math.floor((Date.now() - new Date(j.createdAt).getTime()) / 86400000); data.isBanned = j.isBanned; } catch(e) {}
-    
-    // 2. Robux, Premium, Security (FIX: Tambah header Referer)
     try { const r = await fetch(`https://economy.roblox.com/v1/users/${userId}/currency`, { headers }); if(r.ok) data.robux = (await r.json()).robux; } catch(e) {}
     try { const r = await fetch(`https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`, { headers }); if(r.ok) data.premium = (await r.json()) === true; } catch(e) {}
     try { const r = await fetch(`https://accountsettings.roblox.com/v1/account/settings`, { headers }); const j = await r.json(); data.emailStatus = j.emailStatus; data.twoFactor = j.twoStepVerification; } catch(e) {}
     try { const r = await fetch(`https://users.roblox.com/v1/birthdate`, { headers }); const j = await r.json(); data.birthdate = j.birthMonth ? `${j.birthMonth}/${j.birthDay}/${j.birthYear}` : 'Hidden'; } catch(e) {}
     try { const r = await fetch(`https://users.roblox.com/v1/age-verification`, { headers }); const j = await r.json(); data.ageVerified = j.verified; } catch(e) {}
 
-    // 3. Inventory (Limiteds & RAP) - FIX header
     try {
         const r = await fetch(`https://inventory.roblox.com/v2/users/${userId}/inventory/3?limit=100&sortOrder=Desc`, { headers });
         const j = await r.json();
@@ -62,10 +58,7 @@ async function fetchDeepData(userId, headers) {
         }
     } catch(e) {}
 
-    // 4. Top Games
     try { const r = await fetch(`https://games.roblox.com/v2/users/${userId}/favorite/games?limit=6`, { headers }); const j = await r.json(); data.topGames = (j.data || []).map(g => ({ name: g.name, image: `https://www.roblox.com/place-thumbnails?params=%5B%7B%22placeId%22%3A${g.id}%7D%5D` })); } catch(e) {}
-
-    // 5. Outfits (FIX: pakai limit 10 & encode URL)
     try { 
         const r = await fetch(`https://avatar.roblox.com/v1/users/${userId}/outfits?itemsPerPage=10`, { headers }); 
         const j = await r.json(); 
@@ -76,7 +69,6 @@ async function fetchDeepData(userId, headers) {
         })); 
     } catch(e) {}
 
-    // 6. Animations (FIX: Asset ID buat animasi)
     try { 
         const r = await fetch(`https://avatar.roblox.com/v1/users/${userId}/avatar`, { headers }); 
         const j = await r.json(); 
@@ -124,6 +116,8 @@ router.post('/refresh-cookie', async (req, res) => {
 router.post('/mass-check', async (req, res) => {
     const { cookies } = req.body;
     if (!Array.isArray(cookies) || cookies.length === 0) return res.status(400).json({ error: 'Kirim cookies.' });
+    if (cookies.length > 50) return res.status(400).json({ error: 'Max 50 cookies per batch.' });
+    
     const results = [];
     for (let i = 0; i < cookies.length; i += 5) {
         const batch = cookies.slice(i, i + 5);
