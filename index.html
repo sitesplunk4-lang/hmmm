@@ -148,7 +148,7 @@ input[type="file"] { display: none; }
             <div class="logo">RZ</div>
             <div>
                 <h1>RizkyTools</h1>
-                <p>Console v3.2</p>
+                <p>Console v3.3</p>
             </div>
         </div>
         <div class="status">
@@ -194,7 +194,7 @@ input[type="file"] { display: none; }
     <!-- PANEL MASS CHECKER -->
     <div id="panel-mass" class="panel">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label>MASS CHECKER</label>
+            <label>MASS CHECKER (MAX 2000)</label>
             <div style="display:flex; gap:6px;">
                 <button class="btn-secondary btn-sm" onclick="pasteText('massInput')">Paste</button>
                 <button class="btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()">Upload .txt</button>
@@ -372,34 +372,62 @@ async function refreshCookie() {
     } catch (e) { show(resultDiv, 'invalid', 'Server error.'); }
 }
 
+// === FITUR MASS CHECKER (BATCHING 2000 COOKIES) ===
 async function massCheck() {
     const raw = document.getElementById('massInput').value.trim();
     const resultDiv = document.getElementById('massResult');
     if (!raw) return toast('Paste or upload cookies first!', 'error');
-    const cookies = raw.split('\n').map(c => c.trim()).filter(Boolean);
-    if (cookies.length > 30) return toast('Max 30 cookies!', 'error');
     
-    show(resultDiv, '', `Checking ${cookies.length} cookies...`);
-    try {
-        const res = await fetch(`${API_BASE}/api/mass-check`, { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cookies }) 
-        });
-        const data = await res.json();
-        if (data.error) return show(resultDiv, 'invalid', `Error: ${data.error}`);
+    const cookies = raw.split('\n').map(c => c.trim()).filter(Boolean);
+    if (cookies.length > 2000) return toast('Max 2000 cookies per check!', 'error');
+    
+    massData = [];
+    let validCount = 0;
+    let invalidCount = 0;
+    
+    // Batching: Kirim per 30 cookie biar Netlify nggak timeout
+    const BATCH_SIZE = 30;
+    const totalBatches = Math.ceil(cookies.length / BATCH_SIZE);
+    
+    for (let i = 0; i < cookies.length; i += BATCH_SIZE) {
+        const batch = cookies.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
         
-        massData = data.results;
-        let out = `RESULTS\nTotal: ${data.total} | Valid: ${data.validCount} | Invalid: ${data.invalidCount}\n\n`;
-        data.results.forEach((r, i) => {
-            if (r.valid) {
-                out += `[${i+1}] VALID - ${r.username} (${r.displayName}) | ${r.robux ?? '?'} R$\n`;
-            } else {
-                out += `[${i+1}] INVALID\n`;
+        show(resultDiv, '', `Checking batch ${batchNum} of ${totalBatches} (${i + batch.length}/${cookies.length} cookies)...`);
+        
+        try {
+            const res = await fetch(`${API_BASE}/api/mass-check`, { 
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cookies: batch }) 
+            });
+            const data = await res.json();
+            
+            if (data.error) {
+                show(resultDiv, 'invalid', `Error on batch ${batchNum}: ${data.error}`);
+                return;
             }
-        });
-        
-        show(resultDiv, data.validCount > 0 ? 'valid' : 'invalid', out);
-        toast(`Done: ${data.validCount} valid.`);
-    } catch (e) { show(resultDiv, 'invalid', 'Server error.'); }
+            
+            massData.push(...data.results);
+            validCount += data.validCount;
+            invalidCount += data.invalidCount;
+            
+        } catch (e) {
+            show(resultDiv, 'invalid', `Network error on batch ${batchNum}.`);
+            return;
+        }
+    }
+    
+    // Selesai semua batch, tampilkan hasilnya
+    let out = `RESULTS\nTotal: ${cookies.length} | Valid: ${validCount} | Invalid: ${invalidCount}\n\n`;
+    massData.forEach((r, i) => {
+        if (r.valid) {
+            out += `[${i+1}] VALID - ${r.username} (${r.displayName}) | ${r.robux ?? '?'} R$\n`;
+        } else {
+            out += `[${i+1}] INVALID\n`;
+        }
+    });
+    
+    show(resultDiv, validCount > 0 ? 'valid' : 'invalid', out);
+    toast(`Done: ${validCount} valid.`);
 }
 
 function exportCSV() {
