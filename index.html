@@ -10,14 +10,13 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
     --bg: #000000;
-    --panel: rgba(12, 12, 14, 0.8);
+    --panel: rgba(12, 12, 14, 0.85);
     --border: rgba(255, 255, 255, 0.08);
     --text-main: #ffffff;
     --text-muted: #888888;
     --success: #22c55e;
     --danger: #ef4444;
     --warn: #f59e0b;
-    --accent: #f59e0b;
     --font-sans: 'Inter', sans-serif;
     --font-mono: 'Fira Code', monospace;
 }
@@ -39,12 +38,12 @@ body::before {
     content: '';
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at 50% 0%, rgba(245,158,11,0.03) 0%, transparent 60%),
+    background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 60%),
                 radial-gradient(circle at 50% 100%, rgba(255,255,255,0.02) 0%, transparent 60%);
     z-index: -2;
 }
 body::after {
-    content: 'DEEP TELEMETRY';
+    content: 'RIZKYTOOLS';
     position: fixed;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%) rotate(-15deg);
@@ -101,6 +100,16 @@ button { padding: 14px 28px; border: none; border-radius: 12px; font-family: var
 .btn-danger:hover { background: rgba(239, 68, 68, 0.3); }
 .btn-sm { padding: 10px 18px; font-size: 12px; }
 
+.toggle-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; }
+.toggle-text h4 { font-size: 14px; font-weight: 700; }
+.toggle-text p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--success); }
+input:checked + .slider:before { transform: translateX(22px); }
+
 .result-box { margin-top: 24px; padding: 28px; background: #000; border: 1px solid var(--border); border-radius: 16px; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 .result-box.valid { border-color: var(--success); }
 .result-box.invalid { border-color: var(--danger); }
@@ -112,7 +121,7 @@ button { padding: 14px 28px; border: none; border-radius: 12px; font-family: var
 .profile-info p { font-size: 13px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 4px; }
 
 .grid-data { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
-.data-group h4 { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.data-group h4 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 .data-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; font-family: var(--font-mono); }
 .data-row span:first-child { color: var(--text-muted); }
 .data-row span:last-child { font-weight: 600; }
@@ -164,9 +173,8 @@ button { padding: 14px 28px; border: none; border-radius: 12px; font-family: var
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('refresh', this)">Refresh</div>
+        <div class="tab" onclick="switchTab('mass', this)">Mass Checker</div>
         <div class="tab" onclick="switchTab('lookup', this)">Lookup</div>
-        <div class="tab" onclick="switchTab('changepass', this)">Change Password</div>
-        <div class="tab" onclick="switchTab('bypass', this)">Bypass IP</div>
         <div class="tab" onclick="switchTab('tax', this)">Tax Calculator</div>
     </div>
 
@@ -181,19 +189,37 @@ button { padding: 14px 28px; border: none; border-radius: 12px; font-family: var
         </div>
         <textarea id="cookieInput" rows="3" placeholder="_|WARNING:-DO-NOT-SHARE-THIS..."></textarea>
         
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:16px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px;">
-            <div>
-                <div style="font-size:14px; font-weight:700;">Deep Account Info</div>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Robux, Limiteds, Games, Security & Billing</div>
+        <div class="toggle-container">
+            <div class="toggle-text">
+                <h4>Deep Account Info</h4>
+                <p>Robux, Limiteds, Games, Security & Billing</p>
             </div>
-            <label style="margin:0; cursor:pointer; display:flex; align-items:center;">
-                <input type="checkbox" id="getAccountInfo" style="width:22px; height:22px; accent-color:#fff; cursor:pointer;">
+            <label class="switch">
+                <input type="checkbox" id="getAccountInfo">
+                <span class="slider"></span>
             </label>
         </div>
 
         <button class="btn-primary" onclick="refreshCookie()">Refresh Cookie</button>
         
         <div id="refreshResult" class="result-box"></div>
+    </div>
+
+    <!-- PANEL MASS CHECKER -->
+    <div id="panel-mass" class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label>MASS CHECKER (1 COOKIE PER LINE)</label>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-secondary btn-sm" onclick="pasteText('massInput')">Paste</button>
+                <button class="btn-danger btn-sm" onclick="clearText('massInput')">Clear</button>
+            </div>
+        </div>
+        <textarea id="massInput" rows="6" placeholder="cookie1&#10;cookie2&#10;cookie3..."></textarea>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="massCheck()" style="flex:1;">Check All</button>
+            <button class="btn-secondary" onclick="exportCSV()" style="flex:1;">Export CSV</button>
+        </div>
+        <div id="massResult" class="result-box" style="white-space: pre-wrap; font-family: var(--font-mono); font-size: 12px;"></div>
     </div>
 
     <!-- PANEL LOOKUP -->
@@ -208,38 +234,6 @@ button { padding: 14px 28px; border: none; border-radius: 12px; font-family: var
         <input type="text" id="lookupName" placeholder="Enter Roblox username...">
         <button class="btn-primary" onclick="lookupUser()">Search Account</button>
         <div id="lookupResult" class="result-box"></div>
-    </div>
-
-    <!-- PANEL CHANGE PASS -->
-    <div id="panel-changepass" class="panel">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label>.ROBLOSECURITY COOKIE</label>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-secondary btn-sm" onclick="pasteText('passCookie')">Paste</button>
-                <button class="btn-danger btn-sm" onclick="clearText('passCookie')">Clear</button>
-            </div>
-        </div>
-        <textarea id="passCookie" rows="2" placeholder="Paste cookie here..."></textarea>
-        <label>NEW PASSWORD</label>
-        <input type="password" id="newPassword" placeholder="Minimum 8 characters...">
-        <button class="btn-primary" onclick="changePassword()">Change Password & Logout</button>
-        <div id="passResult" class="result-box"></div>
-    </div>
-
-    <!-- PANEL BYPASS -->
-    <div id="panel-bypass" class="panel">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label>.ROBLOSECURITY COOKIE</label>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-secondary btn-sm" onclick="pasteText('bypassCookie')">Paste</button>
-                <button class="btn-danger btn-sm" onclick="clearText('bypassCookie')">Clear</button>
-            </div>
-        </div>
-        <textarea id="bypassCookie" rows="2" placeholder="Paste cookie here..."></textarea>
-        <label>TARGET URL (Default: Authenticated)</label>
-        <input type="text" id="bypassTarget" value="https://users.roblox.com/v1/users/authenticated">
-        <button class="btn-primary" onclick="bypassCheck()">Test Bypass</button>
-        <div id="bypassResult" class="result-box"></div>
     </div>
 
     <!-- PANEL TAX -->
@@ -257,13 +251,12 @@ button { padding: 14px 28px; border: none; border-radius: 12px; font-family: var
     </div>
 </div>
 
-<div class="footer">RIZKYTOOLS &copy; 2026 &bull; DEEP TELEMETRY</div>
+<div class="footer">RIZKYTOOLS &copy; 2026</div>
 
 <script>
-// URL API (Kosongin kalau pakai Netlify, isi kalau pakai Cloudflare)
 const API_BASE = ''; 
+let massData = [];
 
-// Helper UI
 function switchTab(name, el) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -282,7 +275,6 @@ function toast(msg, type) {
 function pasteText(id) { navigator.clipboard.readText().then(text => { document.getElementById(id).value = text; toast('Pasted!'); }).catch(() => toast('Failed to paste.', 'error')); }
 function clearText(id) { document.getElementById(id).value = ''; toast('Cleared.'); }
 
-// Render UI Deep Telemetry
 function renderAccountCard(u, t) {
     // 1. Limiteds
     let limitedsHtml = t.topLimited && t.topLimited.length > 0 ? `<div class="items-grid">` + t.topLimited.map(i => `
@@ -372,7 +364,6 @@ function renderAccountCard(u, t) {
     `;
 }
 
-// === FITUR REFRESH ===
 async function refreshCookie() {
     const cookie = document.getElementById('cookieInput').value.trim();
     const getInfo = document.getElementById('getAccountInfo').checked;
@@ -405,13 +396,52 @@ async function refreshCookie() {
     } catch (e) { show(resultDiv, 'invalid', 'Server error.'); toast('Server error', 'error'); }
 }
 
-// === FITUR LOOKUP ===
+async function massCheck() {
+    const raw = document.getElementById('massInput').value.trim();
+    const resultDiv = document.getElementById('massResult');
+    if (!raw) return toast('Paste cookies first!', 'error');
+    const cookies = raw.split('\n').map(c => c.trim()).filter(Boolean);
+    if (cookies.length > 30) return toast('Max 30 cookies!', 'error');
+    
+    show(resultDiv, '', `Checking ${cookies.length} cookies...`);
+    try {
+        const res = await fetch(`${API_BASE}/api/mass-check`, { 
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cookies }) 
+        });
+        const data = await res.json();
+        if (data.error) return show(resultDiv, 'invalid', `Error: ${data.error}`);
+        
+        massData = data.results;
+        let out = `RESULTS\nTotal: ${data.total} | Valid: ${data.validCount} | Invalid: ${data.invalidCount}\n\n`;
+        data.results.forEach((r, i) => {
+            if (r.valid) out += `[${i+1}] VALID - ${r.username} | ${r.robux ?? '?'}R$\n`;
+            else out += `[${i+1}] INVALID\n`;
+        });
+        
+        show(resultDiv, data.validCount > 0 ? 'valid' : 'invalid', out);
+        toast(`Done: ${data.validCount} valid.`);
+    } catch (e) { show(resultDiv, 'invalid', 'Server error.'); }
+}
+
+function exportCSV() {
+    if (massData.length === 0) return toast('No data to export!', 'error');
+    const rows = [['No', 'Valid', 'Username', 'DisplayName', 'ID', 'Robux', 'Premium', 'AgeDays', 'Error']];
+    massData.forEach((r, i) => rows.push([i + 1, r.valid ? 'YES' : 'NO', r.username || '', r.displayName || '', r.id || '', r.robux ?? '', r.premium ? 'YES' : 'NO', r.ageDays || '', r.error || '']));
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `rizkytools_mass_${Date.now()}.csv`;
+    a.click();
+    toast('CSV exported!', 'success');
+}
+
 async function lookupUser() {
     const username = document.getElementById('lookupName').value.trim();
     const resultDiv = document.getElementById('lookupResult');
     if (!username) return toast('Enter a username!', 'error');
     
-    show(resultDiv, '', '<div style="color:var(--text-muted); text-align:center;">Scanning account...</div>');
+    show(resultDiv, '', '<div style="color:var(--text-muted); text-align:center;">Searching...</div>');
     try {
         const res = await fetch(`${API_BASE}/api/lookup`, { 
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) 
@@ -426,49 +456,6 @@ async function lookupUser() {
     } catch (e) { show(resultDiv, 'invalid', 'Server error.'); }
 }
 
-// === FITUR GANTI PASSWORD ===
-async function changePassword() {
-    const cookie = document.getElementById('passCookie').value.trim();
-    const newPassword = document.getElementById('newPassword').value.trim();
-    const resultDiv = document.getElementById('passResult');
-    if (!cookie) return toast('Cookie is empty!', 'error');
-    if (newPassword.length < 8) return toast('Password min 8 chars!', 'error');
-
-    show(resultDiv, '', '<div style="color:var(--text-muted); text-align:center;">Processing...</div>');
-    try {
-        const res = await fetch(`${API_BASE}/api/change-password`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cookie, newPassword })
-        });
-        const data = await res.json();
-        
-        if (data.success) show(resultDiv, 'valid', `<div style="color:var(--success); font-weight:800; font-size:16px;">Success</div><div style="margin-top:12px; font-size:14px;">Password changed to: <b>${newPassword}</b></div>`);
-        else show(resultDiv, 'invalid', `Error: ${data.error}`);
-    } catch (e) { show(resultDiv, 'invalid', 'Server error.'); }
-}
-
-// === FITUR BYPASS ===
-async function bypassCheck() {
-    const cookie = document.getElementById('bypassCookie').value.trim();
-    const target = document.getElementById('bypassTarget').value.trim();
-    const resultDiv = document.getElementById('bypassResult');
-    if (!cookie) return toast('Cookie is empty!', 'error');
-    
-    show(resultDiv, '', '<div style="color:var(--text-muted); text-align:center;">Testing connection...</div>');
-    try {
-        const res = await fetch(`${API_BASE}/api/bypass-check`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cookie, target })
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-            show(resultDiv, 'valid', `<div style="color:var(--success); font-weight:800; font-size:16px; margin-bottom:12px;">Bypass Successful</div><div style="font-size:13px; font-family:var(--font-mono);">Status: ${data.status}</div><div style="font-size:12px; color:var(--text-muted); margin-top:12px; word-break:break-all;">${JSON.stringify(data.data)}</div>`);
-        } else {
-            show(resultDiv, 'warn', `<div style="color:var(--warn); font-weight:800; font-size:16px; margin-bottom:12px;">Bypass Requires Proxy</div><div style="font-size:13px; color:var(--text-muted); line-height:1.6;">Roblox blocks direct server requests. You need to set up an external proxy to bypass IP lock.</div><div style="font-size:12px; margin-top:16px; font-family:var(--font-mono); color:var(--danger);">Error: ${data.error}</div>`);
-        }
-    } catch (e) { show(resultDiv, 'invalid', 'Server error.'); }
-}
-
-// === FITUR TAX ===
 async function calcTax() {
     const amount = parseFloat(document.getElementById('taxAmount').value);
     const mode = document.getElementById('taxMode').value;
