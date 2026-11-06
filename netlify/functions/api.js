@@ -112,7 +112,6 @@ router.post('/lookup', async (req, res) => {
     } catch (e) { res.status(500).json({ error: 'Lookup failed' }); }
 });
 
-// Change Pass & Bypass Tetap Sama
 router.post('/change-password', async (req, res) => {
     const { cookie, newPassword } = req.body;
     const headers = makeHeaders(cookie);
